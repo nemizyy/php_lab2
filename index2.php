@@ -1,11 +1,12 @@
 <?php
-// Включение отображения всех ошибок (Крок 7)
+
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-// Поліфіл на випадок, якщо розширення mbstring не підключено в php.ini
+
 if (!function_exists('mb_strlen')) {
-    function mb_strlen(string $string, ?string $encoding = null): int {
+    function mb_strlen(string $string, ?string $encoding = null): int
+    {
         return function_exists('iconv_strlen') ? (int) @iconv_strlen($string, 'UTF-8') : (int) preg_match_all('/./us', $string);
     }
 }
@@ -18,35 +19,33 @@ $formData = [
 ];
 $isSuccess = false;
 
-// ============================================================================
-// Крок 3. Серверная обработка и валидация данных
-// ============================================================================
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Получение данных из суперглобального массива $_POST
+
     $formData['title'] = trim($_POST['title'] ?? '');
     $formData['author'] = trim($_POST['author'] ?? '');
     $formData['message'] = trim($_POST['message'] ?? '');
 
-    // 1. Валидация поля title (без запрещенных спецсимволов via preg_match)
+
     if ($formData['title'] === '') {
         $errors['title'] = 'Заголовок теми є обов\'язковим.';
     } elseif (!preg_match('/^[\p{L}\p{N}\s\?\!\.\,\-\–\—\'\"«»]+$/u', $formData['title'])) {
         $errors['title'] = 'Заголовок містить заборонені спецсимволи (дозволені лише літери, цифри, пробіли та розділові знаки).';
     }
 
-    // 2. Валидация поля author
+
     if ($formData['author'] === '') {
         $errors['author'] = 'Ім\'я автора є обов\'язковим.';
     }
 
-    // 3. Валидация поля message (не менее 10 символов)
+
     if ($formData['message'] === '') {
         $errors['message'] = 'Текст повідомлення є обов\'язковим.';
     } elseif (mb_strlen($formData['message']) < 10) {
         $errors['message'] = 'Повідомлення має містити не менше 10 символів (наразі: ' . mb_strlen($formData['message']) . ').';
     }
 
-    // Проверка наличия ошибок
+
     if (empty($errors)) {
         $isSuccess = true;
     }
@@ -164,11 +163,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <h1>Форум — Створення нової теми</h1>
 
-        <!-- Контейнер для ошибок JS-валидации -->
+
         <div id="jsErrorBlock" class="alert alert-danger js-error-summary"></div>
 
         <?php if ($isSuccess): ?>
-            <!-- Крок 4. Вывод подтверждения с принятыми данными -->
+
             <div class="alert alert-success">
                 <h3>Тему успішно створено!</h3>
                 <p><strong>Заголовок:</strong>
@@ -190,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <!-- Крок 2. HTML-форма -->
+
             <form id="forumForm" action="index2.php" method="post" novalidate>
                 <div class="form-group">
                     <label for="title">Заголовок теми *</label>
@@ -232,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('forumForm');
-            if (!form) return; // Если форма не отображается (успешная отправка)
+            if (!form) return;
 
             const titleInput = document.getElementById('title');
             const authorInput = document.getElementById('author');
@@ -241,10 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             const STORAGE_KEY = 'forum_topic_draft';
 
-            // =========================================================================
-            // Крок 6. Восстановление черновика из localStorage
-            // =========================================================================
-            // Восстанавливаем данные только если PHP не вернул уже введенные данные из-за ошибок
+
             const isPhpRepopulated = <?= (!empty($formData['title']) || !empty($formData['author']) || !empty($formData['message'])) ? 'true' : 'false' ?>;
 
             if (!isPhpRepopulated) {
@@ -261,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Сохранение черновика при каждом вводе символа (событие input)
+
             function saveDraft() {
                 const draft = {
                     title: titleInput.value,
@@ -275,18 +271,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             authorInput.addEventListener('input', saveDraft);
             messageInput.addEventListener('input', saveDraft);
 
-            // =========================================================================
-            // Крок 5. Клиентская JavaScript-валидация
-            // =========================================================================
+
             form.addEventListener('submit', (event) => {
                 let clientErrors = [];
 
-                // Проверка сообщения (не менее 10 символов)
                 if (messageInput.value.trim().length < 10) {
                     clientErrors.push('JS-помилка: Текст повідомлення повинен містити не менше 10 символів.');
                 }
 
-                // Проверка заголовка на недопустимые спецсимволы
+
                 const titleRegex = /^[\p{L}\p{N}\s\?\!\.\,\-\–\—\'\"«»]+$/u;
                 if (!titleInput.value.trim()) {
                     clientErrors.push('JS-помилка: Заголовок теми є обов\'язковим.');
@@ -294,14 +287,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     clientErrors.push('JS-помилка: Заголовок містить заборонені спецсимволи.');
                 }
 
-                // Если есть ошибки — отменяем отправку формы
+
                 if (clientErrors.length > 0) {
-                    event.preventDefault(); // Предотвращаем отправку
+                    event.preventDefault();
                     jsErrorBlock.innerHTML = clientErrors.join('<br>');
                     jsErrorBlock.style.display = 'block';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    // Если валидация прошла успешно, очищаем черновик из localStorage
+
                     localStorage.removeItem(STORAGE_KEY);
                 }
             });
